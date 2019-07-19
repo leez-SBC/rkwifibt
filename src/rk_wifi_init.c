@@ -80,6 +80,7 @@ static wifi_device supported_wifi_devices[] = {
 	{"AP6398S",		"02d0:4359"},
 	{"AP6335",		"02d0:4335"},
 	{"AP6255",      "02d0:a9bf"},
+	{"AP6256",      "02d0:a9bf"},
 	{"AP6212A",     "02d0:a9a6"},
 	{"RTL8822BE",	"10ec:b822"},
 };
@@ -126,6 +127,7 @@ static wifi_device supported_wifi_devices[] = {
 #define AP6356_BT_FIRMWARE_MODULE_PATH "/system/etc/firmware/BCM4356A2.hcd"
 #define AP6398s_BT_FIRMWARE_MODULE_PATH "/system/etc/firmware/BCM4359C0.hcd"
 #define AP6236_BT_FIRMWARE_MODULE_PATH "/system/etc/firmware/BCM4343B0.hcd"
+#define AP6256_BT_FIRMWARE_MODULE_PATH "/system/etc/firmware/BCM4345C5.hcd"
 
 wifi_ko_file_name module_list[] =
 {
@@ -151,6 +153,7 @@ wifi_ko_file_name module_list[] =
 	{"AP6212A",         BCM_DRIVER_MODULE_PATH, UNKKOWN_DRIVER_MODULE_ARG, AP6212A_BT_FIRMWARE_MODULE_PATH},
 	{"AP6356",          BCM_DRIVER_MODULE_PATH, UNKKOWN_DRIVER_MODULE_ARG, AP6356_BT_FIRMWARE_MODULE_PATH},
 	{"AP6398S",         BCM_DRIVER_MODULE_PATH, UNKKOWN_DRIVER_MODULE_ARG, AP6398s_BT_FIRMWARE_MODULE_PATH},
+	{"AP6256",          BCM_DRIVER_MODULE_PATH, UNKKOWN_DRIVER_MODULE_ARG, AP6256_BT_FIRMWARE_MODULE_PATH},
 	{"APXXX",           BCM_DRIVER_MODULE_PATH, UNKKOWN_DRIVER_MODULE_ARG, ""},
 	{"UNKNOW",       DRIVER_MODULE_PATH_UNKNOW, UNKKOWN_DRIVER_MODULE_ARG, ""}
 
@@ -325,6 +328,7 @@ static int create_bt_test_file_for_brcm(void)
 	fp = fopen(BT_TEST_FILE, "wt+");
 
 	if (fp != 0) {
+		fputs("killall brcm_patchram_plus1\n", fp);
 		fputs("echo 0 > /sys/class/rfkill/rfkill0/state\n", fp);
 		fputs("sleep 1\n", fp);
 		fputs("echo 1 > /sys/class/rfkill/rfkill0/state\n", fp);
@@ -425,9 +429,9 @@ int wifibt_load_driver(void)
 		create_bt_test_file_for_brcm();
 		memset(temp, 0, 256);
 		system("echo 0 > /sys/class/rfkill/rfkill0/state");
-		usleep(2);
+		usleep(500);
 		system("echo 1 > /sys/class/rfkill/rfkill0/state");
-		usleep(2);
+		usleep(1000);
 
 		sprintf(temp, "brcm_patchram_plus1 --bd_addr_rand --enable_hci --no2bytes --use_baudrate_for_download  --tosleep  200000 --baudrate 1500000 --patchram  %s %s &", bt_firmware_patch, bt_tty_dev);
 		printf("%s %s\n", __func__, temp);
@@ -435,6 +439,10 @@ int wifibt_load_driver(void)
 			printf("bt_init: %s failed \n", temp);
 			return -1;
 		}
+		sleep(1)
+		system("echo 0 > /sys/class/rfkill/rfkill0/state");
+		usleep(1000);
+		system("echo 1 > /sys/class/rfkill/rfkill0/state");
 	} else if (strstr(bt_firmware_patch , "RTL")) {
 		create_bt_test_file_for_rtl();
 		system("echo 0 > /sys/class/rfkill/rfkill0/state");
@@ -449,6 +457,12 @@ int wifibt_load_driver(void)
 		sprintf(temp, "rtk_hciattach -n -s 115200 %s rtk_h5 &", bt_tty_dev);
 		system(temp);
 		usleep(5000);
+	}
+
+	while (count-- > 0) {
+		if (check_wireless_ready())
+			break;
+		usleep(200000);
 	}
 
 	return 0;
