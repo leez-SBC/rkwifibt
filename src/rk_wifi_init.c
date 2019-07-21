@@ -439,7 +439,7 @@ int wifibt_load_driver(void)
 			printf("bt_init: %s failed \n", temp);
 			return -1;
 		}
-		sleep(1)
+		sleep(1);
 		system("echo 0 > /sys/class/rfkill/rfkill0/state");
 		usleep(1000);
 		system("echo 1 > /sys/class/rfkill/rfkill0/state");
