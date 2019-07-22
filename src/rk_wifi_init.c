@@ -418,20 +418,15 @@ int wifibt_load_driver(void)
 		return -1;
 	}
 
-	while (count-- > 0) {
-		if (check_wireless_ready())
-			break;
-		usleep(200000);
-	}
-
 	//bt init
 	if (strstr(bt_firmware_patch , "system")) {
 		create_bt_test_file_for_brcm();
+		system("killall brcm_patchram_plus1");
 		memset(temp, 0, 256);
 		system("echo 0 > /sys/class/rfkill/rfkill0/state");
-		usleep(500);
+		usleep(20000);
 		system("echo 1 > /sys/class/rfkill/rfkill0/state");
-		usleep(1000);
+		usleep(20000);
 
 		sprintf(temp, "brcm_patchram_plus1 --bd_addr_rand --enable_hci --no2bytes --use_baudrate_for_download  --tosleep  200000 --baudrate 1500000 --patchram  %s %s &", bt_firmware_patch, bt_tty_dev);
 		printf("%s %s\n", __func__, temp);
@@ -439,10 +434,11 @@ int wifibt_load_driver(void)
 			printf("bt_init: %s failed \n", temp);
 			return -1;
 		}
-		sleep(1);
+		sleep(2);
 		system("echo 0 > /sys/class/rfkill/rfkill0/state");
-		usleep(1000);
+		usleep(20000);
 		system("echo 1 > /sys/class/rfkill/rfkill0/state");
+		usleep(20000);
 	} else if (strstr(bt_firmware_patch , "RTL")) {
 		create_bt_test_file_for_rtl();
 		system("echo 0 > /sys/class/rfkill/rfkill0/state");
